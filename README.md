@@ -28,7 +28,7 @@ Este laboratório coleta dados de Pull Requests (PRs) de repositórios populares
 | `participants` | Conjunto único de *logins*: autor + comentadores em `/issues/{n}/comments` e `/pulls/{n}/comments` + autores de `/pulls/{n}/reviews` |
 | `review_count` | Nº de entradas devolvidas por `/pulls/{n}/reviews` (submissões de *review*) |
 
-Processamento de PRs usa `ThreadPoolExecutor` com tamanho `GITHUB_CONCURRENCY` (a API do GitHub continua a ser o gargalo; 403/abuso: reduzir o valor).
+Processamento de PRs usa `ThreadPoolExecutor` com tamanho `GITHUB_CONCURRENCY`; [`github_client`](src/github_client.py) usa **uma `Session` por *thread*** para I/O em paralelo (com *lock* só na pausa global de *rate limit*). As linhas de `pull_requests_data.csv` por repositório ficam **ordenadas por `pr_number`**. A API continua a ser o gargalo; 403/abuso: reduzir `GITHUB_CONCURRENCY`.
 
 ## Configuração
 
@@ -79,7 +79,7 @@ python src/crawler.py
 Ficheiros em `data/` (não versionados por defeito; ver [`.gitignore`](.gitignore)):
 
 - **`selected_repositories.csv`**: repositórios selecionados.  
-- **`pull_requests_data.csv`**: uma linha por PR que passou nos filtros.  
+- **`pull_requests_data.csv`**: uma linha por PR que passou nos filtros (por repositório, linhas ordenadas por número do PR).  
 - **`crawler.log`**: log de execução.
 
 ## Estrutura do Projeto

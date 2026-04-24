@@ -137,6 +137,7 @@ class GitHubCrawler:
                         out.append(row)
                 except Exception as e:  # noqa: BLE001
                     _tlog(f"Erro ao processar PR em {repo_full_name}: {e}")
+        out.sort(key=lambda r: int(r.get("number", 0) or 0))
         _tlog(f"Selecionados {len(out)} PRs (critério enunciado) de {repo_full_name}")
         return out
 

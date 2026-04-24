@@ -1,8 +1,7 @@
 """
-Cliente HTTP mínimo para a API REST v3 do GitHub com:
-- sessão e header de auth
-- leitura de X-RateLimit; pausa quando Remaining=0
-- bloqueio para uso concorrente com requests.Session
+Cliente HTTP para a API REST v3 do GitHub:
+- uma requests.Session por thread (I/O paralelo seguro)
+- pausa global coordenada quando a API reporta rate limit
 """
 from __future__ import annotations
 
@@ -18,15 +17,26 @@ logger = logging.getLogger(__name__)
 
 class GitHubClient:
     def __init__(self, token: str, user_agent: str = "lab-codereview-analysis-crawler") -> None:
-        self._session = requests.Session()
-        self._lock = threading.Lock()
-        headers: Dict[str, str] = {
+        self._token = token
+        self._user_agent = user_agent
+        self._headers: Dict[str, str] = {
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": user_agent,
         }
         if token:
-            headers["Authorization"] = f"token {token}"
-        self._session.headers.update(headers)
+            self._headers["Authorization"] = f"token {token}"
+
+        self._local = threading.local()
+        # Uma thread de cada vez entra no sleep de rate limit (evita N× sleep em rajada)
+        self._rate_limit_lock = threading.Lock()
+
+    def _session(self) -> requests.Session:
+        s = getattr(self._local, "session", None)
+        if s is None:
+            s = requests.Session()
+            s.headers.update(self._headers)
+            self._local.session = s
+        return s
 
     def request(
         self,
@@ -38,23 +48,24 @@ class GitHubClient:
         max_retries: int = 3,
     ) -> requests.Response:
         for attempt in range(max_retries + 1):
-            with self._lock:
-                response = self._session.request(
-                    method, url, params=params, timeout=timeout
-                )
-                self._update_rate_from_headers(response)
+            response = self._session().request(
+                method, url, params=params, timeout=timeout
+            )
+            self._update_rate_from_headers(response)
 
             if response.status_code == 403 and (
                 "rate limit" in (response.text or "").lower()
                 or response.headers.get("X-RateLimit-Remaining") == "0"
             ):
-                self._sleep_for_rate_limit(response)
+                with self._rate_limit_lock:
+                    self._sleep_for_rate_limit(response)
                 continue
 
             if response.status_code in (403, 429) and response.headers.get("Retry-After"):
                 wait = int(response.headers.get("Retry-After", 60))
                 logger.warning("Retry-After %ss em %s", wait, url)
-                time.sleep(min(wait, 300))
+                with self._rate_limit_lock:
+                    time.sleep(min(wait, 300))
                 continue
 
             if response.status_code in (502, 503) and attempt < max_retries:
