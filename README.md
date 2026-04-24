@@ -68,6 +68,48 @@ python src/crawler.py
 3. Por repositório, obtém PRs `closed` e, em paralelo, compõe métricas por PR.
 4. Gera `data/selected_repositories.csv` e `data/pull_requests_data.csv` e `data/crawler.log`.
 
+### Execução na DigitalOcean (Droplet)
+
+1. **Crédito** — No [GitHub Student Pack](https://education.github.com/pack), reivindica o benefício **DigitalOcean** (quando disponível) e liga a tua conta DO.
+2. **Droplet** — Cria uma VM **Ubuntu 22.04/24.04 LTS**, região à escolha, plano mínimo **Regular SSD** (ex. 1 vCPU / 1–2 GB RAM) ou superior se o dataset for muito grande; chave SSH da tua máquina.
+3. **Rede** — *Firewall* DO: permite **TCP 22** (SSH) a partir do teu IP (ou tua VPN).
+4. **Primeiro login** (no teu Mac):
+
+   ```bash
+   ssh root@IP_DO_DROPLET
+   apt update && apt install -y python3-pip python3-venv git tmux
+   ```
+
+5. **Código e ambiente** (não comites o `.env`):
+
+   ```bash
+   git clone https://github.com/erica-as/lab-codereview-analysis.git
+   cd lab-codereview-analysis
+   cp .env.example .env
+   nano .env   # GITHUB_TOKEN=ghp_...  (PAT com leitura a repos públicos)
+   pip3 install -r requirements.txt
+   ```
+
+6. **Sessão longa** (se a ligação SSH cair, o processo continua):
+
+   ```bash
+   tmux new -s crawl
+   python3 src/crawler.py
+   # Ctrl+B, depois D  →  desanexar
+   # ssh de novo → tmux attach -t crawl
+   ```
+
+7. **Trazer os CSVs de volta** (no Mac, com o IP do Droplet):
+
+   ```bash
+   scp root@IP_DO_DROPLET:~/lab-codereview-analysis/data/pull_requests_data.csv .
+   scp root@IP_DO_DROPLET:~/lab-codereview-analysis/data/crawler.log .
+   ```
+
+8. **Custo** — No painel DO, ativa **alertas de orçamento**; desliga ou destrói o Droplet quando acabares para não consumir o crédito após o *run*.
+
+A API do GitHub continua com **rate limit**; o Droplet só evita depender do teu portátil.
+
 ## Documentação adicional (enunciado)
 
 - [docs/enunciado.md](docs/enunciado.md) — enunciado em Markdown  
