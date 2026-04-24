@@ -1,0 +1,152 @@
+Abaixo, seguem 2 sugestões de estrutura para o relatório dos laboratórios, uma resumida e outra completa.
+
+ 
+
+Versão resumida
+
+Introdução
+Contextualização
+Problema foco do experimento
+Questões-problema ou Questões-Pesquisa
+Hipótese(s)
+Objetivo (principal e específicos)
+Metodologia
+Passo a passo do experimento
+Decisões
+Materiais utilizados
+Métodos utilizados
+Métricas e suas Unidades
+Visualização dos Resultados
+Visualização tabular, lista ou gráfica do que foi colhido no experimento
+Discussão dos resultados
+Confrontar Questões-pesquisa
+Insights
+Gráficos
+Comparações
+Estatísticas
+Conclusão
+Tomada de decisão
+Sugestões futuras
+Apresentar resultado conclusivo sucinto
+Plus: Confrontar o resultado final com artigos ou trabalhos científicos, corroborando ou contestando os resultados
+
+Versão completa
+
+1) Título, autores e versão
+ • Título do experimento
+ • Time/autores e contatos
+ • Data, versão do relatório
+ • Link para repo/dados (se houver)
+
+
+2) Resumo
+ • Qual hipótese foi testada
+ • O que mudou (treatment)
+ • Principais resultados (1–3 números)
+ • Decisão recomendada (ship/rollback/iterar)
+
+
+3) Contexto e motivação
+ • Problema de produto/engenharia
+ • Por que esse experimento é necessário agora
+ • Restrições e riscos
+
+
+4) Objetivo e hipóteses
+ • Objetivo específico (o que quer provar/refutar)
+ • Hipótese nula (H0) e alternativa (H1) ou “esperado vs atual”
+ • Critérios de sucesso (thresholds)
+
+
+5) Perguntas de pesquisa (ou perguntas do experimento)
+ • Ex.: “Reduz tempo de resposta?”, “Melhora conversão?”, “Diminui falhas?”
+
+
+6) Variáveis e métricas
+ • Métricas primárias (as decisivas)
+ • Métricas secundárias
+ • Guardrails (métricas que não podem piorar: latência, erros, churn)
+ • Definições exatas (fórmulas, janelas, segmentação)
+
+
+7) Desenho experimental
+ • Tipo: A/B, before-after, canary, teste controlado, simulação, benchmark
+ • Unidades: usuário, sessão, requisição, commit, build etc.
+ • Randomização / balanceamento
+ • Tamanho de amostra, poder estatístico (se aplicável)
+ • Duração e janela temporal
+ • Critérios de inclusão/exclusão
+
+
+8) Ambiente e materiais
+ • Hardware, SO, cloud, instâncias
+ • Versões de software, libs, configs, feature flags
+ • Dataset / dados de entrada (origem, limpeza, anonimização)
+ • Seed/aleatoriedade (para reprodutibilidade)
+
+
+9) Procedimento (passo a passo)
+ • Como rodar o experimento
+ • Pipeline de coleta (logs, tracing, analytics)
+ • Como garantir integridade dos dados
+ • Checklist operacional (antes/durante/depois)
+
+
+10) Tratamentos e baseline
+ • Baseline (controle) e o que representa
+ • Treatment(s) e mudanças exatas (diff/PR/feature flag)
+ • O que NÃO mudou (para evitar confundidores)
+
+
+11) Análise de dados
+ • Método estatístico (testes, IC, regressão) ou método de avaliação (IR metrics, benchmarking)
+ • Tratamento de outliers / missing data
+ • Segmentações planejadas
+ • Correção para múltiplas comparações (se houver)
+
+
+12) Resultados
+ • Tabelas e gráficos principais
+ • Efeito (lift/delta), IC/p-valor quando aplicável
+ • Resultados por segmento (se relevantes)
+ • Observações operacionais (incidentes, anomalias)
+
+
+13) Discussão e interpretação
+ • O que explica os resultados
+ • Limitações (ameaças à validade: interna/externa/construct)
+ • Trade-offs (ex.: qualidade vs latência/custo)
+ • Comparação com trabalhos anteriores/benchmarks
+
+
+14) Decisão e recomendações
+ • Decisão: lançar, iterar, abandonar, reverter
+ • Plano de rollout (se for lançar)
+ • Monitoramento pós-lançamento
+
+
+15) Custos e impactos
+ • Custo computacional (tempo, infra, R$)
+ • Impacto em manutenção/complexidade
+ • Risco técnico e operacional
+
+
+16) Ética, privacidade e conformidade (quando houver)
+ • LGPD, consentimento, retenção de dados
+ • Segurança e controles
+ • Impacto em usuários
+
+
+17) Reprodutibilidade
+ • Como repetir o experimento (comandos/scripts)
+ • Links para código, dashboards, configs, seeds
+ • Hash de commit / tags
+
+
+18) Apêndices
+ • Detalhes estatísticos completos
+ • Logs relevantes
+ • Tabelas longas
+ • Questionários (se for estudo com humanos)
+ • Checklist de execução
+
