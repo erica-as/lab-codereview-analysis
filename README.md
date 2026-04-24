@@ -110,6 +110,37 @@ python src/crawler.py
 
 A API do GitHub continua com **rate limit**; o Droplet só evita depender do teu portátil.
 
+### Execução no Azure (VM Linux)
+
+Funciona de forma muito semelhante a um Droplet: uma **VM Ubuntu** com **SSH (porta 22)** aberta, mesmo fluxo de `git clone` → `.env` → `tmux` → `python3 src/crawler.py` → `scp` dos ficheiros de `data/`.
+
+1. **Crédito** — [Azure for Students](https://azure.microsoft.com/free/students/) ou crédito normal; confirma no portal que tens subscrição ativa.
+2. **Criar VM** — [Portal](https://portal.azure.com) → *Create a resource* → **Virtual machine**:
+   - **Imagem:** Ubuntu Server **22.04/24.04 LTS**
+   - **Tamanho:** qualquer *Burstable* mínimo (ex. B1s) basta; mais RAM alivia o Python se quiseres.
+   - **Autenticação:** chave pública **SSH** (gere no portal ou usa `ssh-keygen` e cola a pública) — evita *password* só.
+   - **Rede pública:** *Public IP* para SSH a partir do teu IP.
+3. **NSG (firewall da VM)** — regra de entrada **TCP 22** a partir do teu IP (ou tua gama) — o *wizard* costuma abrir; se não SSHares, confirma *Network security group* → *Inbound* → 22.
+4. **Ligar** (no teu Mac, com o *username* e IP públicos do portal):
+
+   ```bash
+   ssh azureuser@IP_PUBLICO_DA_VM
+   # Se criaste com outro utilizador, substitui azureuser
+   sudo apt update && sudo apt install -y python3-pip python3-venv git tmux
+   ```
+
+5. **Código e ambiente** — igual à secção DigitalOcean (passos 5 a 6 do Droplet: `git clone` → `cp .env.example .env` → `pip3 install -r requirements.txt` → `tmux` → `python3 src/crawler.py`). Ajusta o URL do `git clone` ao teu *fork* se for o caso.
+6. **Trazer ficheiros** (no Mac):
+
+   ```bash
+   scp azureuser@IP_PUBLICO_DA_VM:~/lab-codereview-analysis/data/pull_requests_data.csv .
+   scp azureuser@IP_PUBLICO_DA_VM:~/lab-codereview-analysis/data/crawler.log .
+   ```
+
+7. **Custo** — *Cost Management* no Azure para alertas. Quando acabar o *crawl*, **parar (deallocate)** ou apagar a VM para não pagar *compute* o tempo todo (disco/IPs podem ainda contar, conforme configuração).
+
+O *rate limit* da API GitHub continua a ser o limite; a VM só corre o processo 24/7 sem depender do teu portátil.
+
 ## Documentação adicional (enunciado)
 
 - [docs/enunciado.md](docs/enunciado.md) — enunciado em Markdown  
