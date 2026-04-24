@@ -153,39 +153,3 @@ lab-codereview-analysis/
 ├── .gitignore                # Gitignore
 └── README.md                 # Este arquivo
 ```
-
-## Verificação de Configuração
-
-Antes de executar o crawler, você pode verificar se tudo está configurado corretamente:
-
-```bash
-python src/test_setup.py
-```
-
-Este script irá verificar:
-- Se o arquivo `.env` existe
-- Se o GitHub Token está configurado
-- A conectividade com a API do GitHub
-- O rate limit disponível
-- Se a pasta `data/` pode ser criada
-
-## Limitações da API do GitHub
-
-O script respeita os limites da API do GitHub:
-- **Rate Limit**: 60 requisições/hora (sem autenticação) ou 5000 requisições/hora (com token)
-- O script monitora o rate limit e registra avisos quando ele está baixo
-- Recomenda-se usar um token válido para evitar limitações
-
-## Possíveis Otimizações Futuras
-
-- [ ] Implementar cache de resultados para evitar re-coleta
-- [ ] Paralelizar requisições à API
-- [ ] Adicionar suporte para continuação interrompida
-- [ ] Integrar com banco de dados em vez de CSV
-- [ ] Adicionar validação de dados mais robusta
-
-## Próximas Etapas
-
-Após completar Lab03S01 com este script:
-- **Lab03S02**: Análise dos dados coletados e hipóteses iniciais
-- **Lab03S03**: Análise e visualização dos dados com geração do relatório final
