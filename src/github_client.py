@@ -49,9 +49,25 @@ class GitHubClient:
         max_retries: int = 3,
     ) -> requests.Response:
         for attempt in range(max_retries + 1):
-            response = self._session().request(
-                method, url, params=params, timeout=timeout
-            )
+            try:
+                response = self._session().request(
+                    method, url, params=params, timeout=timeout
+                )
+            except requests.exceptions.Timeout:
+                wait = self._compute_backoff_seconds(attempt)
+                logger.warning("Timeout de conexão em %s (tentativa %d/%d): aguardando %.2fs", url, attempt + 1, max_retries + 1, wait)
+                time.sleep(wait)
+                continue
+            except requests.exceptions.ConnectionError as e:
+                wait = self._compute_backoff_seconds(attempt)
+                logger.warning("ConnectionError em %s (tentativa %d/%d): aguardando %.2fs — %s", url, attempt + 1, max_retries + 1, wait, e)
+                time.sleep(wait)
+                continue
+            except requests.exceptions.RequestException as e:
+                wait = self._compute_backoff_seconds(attempt)
+                logger.warning("RequestException em %s (tentativa %d/%d): aguardando %.2fs — %s", url, attempt + 1, max_retries + 1, wait, e)
+                time.sleep(wait)
+                continue
             self._update_rate_from_headers(response)
 
             if response.status_code == 403 and (
@@ -79,6 +95,10 @@ class GitHubClient:
                     continue
 
             if response.status_code in (502, 503, 504) and attempt < max_retries:
+                time.sleep(self._compute_backoff_seconds(attempt))
+                continue
+
+            if response.status_code == 200 and hasattr(response, 'content') and not response.content and attempt < max_retries:
                 time.sleep(self._compute_backoff_seconds(attempt))
                 continue
 
