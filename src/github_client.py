@@ -6,6 +6,7 @@ Cliente HTTP para a API REST v3 do GitHub:
 from __future__ import annotations
 
 import logging
+import random
 import threading
 import time
 from typing import Any, Dict, List, Optional
@@ -61,15 +62,24 @@ class GitHubClient:
                     self._sleep_for_rate_limit(response)
                 continue
 
-            if response.status_code in (403, 429) and response.headers.get("Retry-After"):
-                wait = int(response.headers.get("Retry-After", 60))
-                logger.warning("Retry-After %ss em %s", wait, url)
-                with self._rate_limit_lock:
-                    time.sleep(min(wait, 300))
-                continue
+            if response.status_code in (403, 429):
+                retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
+                if retry_after is not None:
+                    logger.warning("Retry-After %ss em %s", retry_after, url)
+                    with self._rate_limit_lock:
+                        time.sleep(retry_after)
+                    continue
 
-            if response.status_code in (502, 503) and attempt < max_retries:
-                time.sleep(1 + attempt)
+                lower_text = (response.text or "").lower()
+                if "abuse" in lower_text or "secondary rate limit" in lower_text:
+                    wait = self._compute_backoff_seconds(attempt)
+                    logger.warning("Abuse detection/secondary limit: aguardando %.2fs em %s", wait, url)
+                    with self._rate_limit_lock:
+                        time.sleep(wait)
+                    continue
+
+            if response.status_code in (502, 503, 504) and attempt < max_retries:
+                time.sleep(self._compute_backoff_seconds(attempt))
                 continue
 
             return response
@@ -145,3 +155,19 @@ class GitHubClient:
         if until > 0:
             logger.warning("Limite de taxa: aguardando %s s", min(until, 3600))
             time.sleep(min(until, 3600))
+
+    @staticmethod
+    def _parse_retry_after(value: Optional[str]) -> Optional[int]:
+        if value is None:
+            return None
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return max(1, min(parsed, 300))
+
+    @staticmethod
+    def _compute_backoff_seconds(attempt: int) -> float:
+        base = min(float(2 ** attempt), 60.0)
+        jitter = random.uniform(0.0, 1.0)
+        return base + jitter

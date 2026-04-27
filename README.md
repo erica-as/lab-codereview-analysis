@@ -7,7 +7,8 @@ Este laboratório coleta dados de Pull Requests (PRs) de repositórios populares
 1. **Seleção de Repositórios**: até **200** repositórios extraídos da busca pública `sort:stars`, **paginando** a API até preencher essa quantidade com o filtro abaixo (máx. 1000 resultados de busca; se não forem 200, o log explica o déficit).
 2. **Filtragem de Repositórios**: repositórios com pelo menos **100** PRs **fechados** (`is:closed` = merged + fechado sem merge).
 3. **Coleta de PRs**: PRs que atendem aos critérios (ver secção seguinte), com **composição** de vários endpoints REST.
-4. **Extração de Métricas**: tamanho, tempo de análise, descrição, interações, número de *reviews* oficiais.
+4. **Cap operacional por repositório (Sprint 2)**: até `MAX_ELIGIBLE_PRS_PER_REPO` PRs elegíveis por repositório para viabilizar custo/tempo.
+5. **Extração de Métricas**: tamanho, tempo de análise, descrição, interações, número de *reviews* oficiais.
 
 ## Critérios de Seleção de PRs
 
@@ -28,7 +29,14 @@ Este laboratório coleta dados de Pull Requests (PRs) de repositórios populares
 | `participants` | Conjunto único de *logins*: autor + comentadores em `/issues/{n}/comments` e `/pulls/{n}/comments` + autores de `/pulls/{n}/reviews` |
 | `review_count` | Nº de entradas devolvidas por `/pulls/{n}/reviews` (submissões de *review*) |
 
-Processamento de PRs usa `ThreadPoolExecutor` com tamanho `GITHUB_CONCURRENCY`; [`github_client`](src/github_client.py) usa **uma `Session` por *thread*** para I/O em paralelo (com *lock* só na pausa global de *rate limit*). As linhas de `pull_requests_data.csv` por repositório ficam **ordenadas por `pr_number`**. A API continua a ser o gargalo; 403/abuso: reduzir `GITHUB_CONCURRENCY`.
+Processamento de PRs usa `ThreadPoolExecutor` com tamanho `GITHUB_CONCURRENCY`; [`github_client`](src/github_client.py) usa **uma `Session` por *thread*** para I/O em paralelo (com *lock* só na pausa global de *rate limit*). A API continua a ser o gargalo; 403/abuso: reduzir `GITHUB_CONCURRENCY`.
+
+Para a Sprint 2, o crawler suporta:
+
+- **cap de PRs elegíveis por repositório** (`MAX_ELIGIBLE_PRS_PER_REPO`);
+- **ordenação por atualização recente** (`sort=updated`, `direction=desc`) para atingir o cap mais cedo;
+- **checkpoint de progresso** (`CHECKPOINT_FILE`) com retomada por repositório/página;
+- **persistência incremental idempotente** em `pull_requests_data.csv` (evita duplicados por `repository+pr_number` em retomadas).
 
 ## Configuração
 
@@ -44,7 +52,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edite [`.env`](.env) e preencha `GITHUB_TOKEN` (e opcionalmente `GITHUB_CONCURRENCY`):
+Edite [`.env`](.env) e preencha `GITHUB_TOKEN`:
 
 ```env
 GITHUB_TOKEN=ghp_xxxxxxxx
@@ -53,6 +61,9 @@ OUTPUT_CSV=pull_requests_data.csv
 REPOSITORIES_CSV=selected_repositories.csv
 LOG_FILE=./data/crawler.log
 GITHUB_CONCURRENCY=16
+MAX_ELIGIBLE_PRS_PER_REPO=100
+MAX_CLOSED_PRS_PAGES=100
+CHECKPOINT_FILE=./data/crawler_checkpoint.json
 ```
 
 Para gerar um token: https://github.com/settings/tokens (acesso a repositórios públicos, ex. `public_repo` em tokens clássicos).
@@ -65,8 +76,13 @@ python src/crawler.py
 
 1. Conecta à API (com *rate limit* e retentativas básicas em [`src/github_client.py`](src/github_client.py)).
 2. Pagina `search/repositories` até 200 repositórios com ≥ 100 PRs fechados (ou esgota a busca).
-3. Por repositório, obtém PRs `closed` e, em paralelo, compõe métricas por PR.
-4. Gera `data/selected_repositories.csv` e `data/pull_requests_data.csv` e `data/crawler.log`.
+3. Por repositório, pagina PRs `closed` ordenados por atualização recente e para quando atingir o cap de elegíveis.
+4. Escreve `data/pull_requests_data.csv` incrementalmente e salva checkpoint em `data/crawler_checkpoint.json`.
+5. Gera `data/selected_repositories.csv`, `data/pull_requests_data.csv` e `data/crawler.log`.
+
+### Retomada após interrupção
+
+Se a execução cair (SSH, rate limit, reboot), execute novamente `python src/crawler.py` com o mesmo `CHECKPOINT_FILE`. O crawler retoma do progresso salvo sem duplicar PRs já persistidos.
 
 ### Execução na DigitalOcean (Droplet)
 
@@ -154,6 +170,7 @@ Ficheiros em `data/` (não versionados por defeito; ver [`.gitignore`](.gitignor
 - **`selected_repositories.csv`**: repositórios selecionados.  
 - **`pull_requests_data.csv`**: uma linha por PR que passou nos filtros (por repositório, linhas ordenadas por número do PR).  
 - **`crawler.log`**: log de execução.
+- **`crawler_checkpoint.json`**: estado de progresso por repositório para retomada (quando configurado).
 
 ## Estrutura do Projeto
 
