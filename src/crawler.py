@@ -531,6 +531,7 @@ class GitHubCrawler:
 
         # Try to load from saved repos list first (avoid new search)
         repos_csv_path = os.path.join(DATA_DIR, REPOSITORIES_CSV)
+        repos = []
         if os.path.exists(repos_csv_path):
             _tlog(f"Carregandolista de repositórios de {repos_csv_path}")
             with open(repos_csv_path, encoding="utf-8") as f:
