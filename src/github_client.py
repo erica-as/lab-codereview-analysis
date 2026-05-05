@@ -152,7 +152,7 @@ class GitHubClient:
     def _update_rate_from_headers(self, response: requests.Response) -> None:
         try:
             rem = response.headers.get("X-RateLimit-Remaining")
-            if rem is not None and int(rem) < 20:
+            if rem is not None and int(rem) <= 5 and int(rem) > 0:
                 reset = response.headers.get("X-RateLimit-Reset")
                 if reset:
                     from datetime import datetime
