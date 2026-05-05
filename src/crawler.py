@@ -114,6 +114,7 @@ class PRCsvSink:
                 ]
             )
             self._file.flush()
+            os.fsync(self._file.fileno())
 
     def append_rows(self, prs: List[Dict[str, Any]]) -> int:
         if not self._writer or not self._file:
@@ -152,6 +153,7 @@ class PRCsvSink:
             self._seen_keys.add(key)
             written += 1
         self._file.flush()
+        os.fsync(self._file.fileno())
         return written
 
     def close(self) -> None:
@@ -515,8 +517,40 @@ class GitHubCrawler:
         _tlog(f"Checkpoint: {CHECKPOINT_FILE}")
         _tlog("=" * 80)
 
-        repos = self.get_popular_repositories(limit=TARGET_REPO_COUNT)
-        self.save_repositories_to_csv(repos)
+        # Check existing progress - skip search if already have 200 done repos
+        done_repos = self.checkpoint.get_all_done_repos()
+        _tlog(f"Checkpoints salvos: {len(done_repos)} repositórios concluídos")
+        
+        if len(done_repos) >= TARGET_REPO_COUNT:
+            _tlog(f"Já temos {len(done_repos)} repos concluídos. Carregando do CSV existente...")
+            output_path = os.path.join(DATA_DIR, OUTPUT_CSV)
+            if os.path.exists(output_path):
+                all_prs = list(csv.DictReader(open(output_path)))
+                return [], all_prs
+            return [], []
+
+        # Try to load from saved repos list first (avoid new search)
+        repos_csv_path = os.path.join(DATA_DIR, REPOSITORIES_CSV)
+        if os.path.exists(repos_csv_path):
+            _tlog(f"Carregandolista de repositórios de {repos_csv_path}")
+            with open(repos_csv_path, encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                repos = []
+                for row in reader:
+                    if len(repos) >= TARGET_REPO_COUNT:
+                        break
+                    repos.append({
+                        "full_name": row.get("full_name", ""),
+                        "name": row.get("name", ""),
+                        "stargazers_count": int(row.get("stars") or 0),
+                    })
+                if repos:
+                    _tlog(f"Usando {len(repos)} repos da lista salva")
+                    self.save_repositories_to_csv(repos)
+
+        if not repos:
+            repos = self.get_popular_repositories(limit=TARGET_REPO_COUNT)
+            self.save_repositories_to_csv(repos)
 
         all_prs: List[Dict[str, Any]] = []
         output_path = os.path.join(DATA_DIR, OUTPUT_CSV)

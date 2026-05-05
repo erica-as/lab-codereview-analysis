@@ -2,7 +2,7 @@ import json
 import os
 import threading
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 class CheckpointStore:
@@ -43,6 +43,14 @@ class CheckpointStore:
                 "error": str(data.get("error") or ""),
                 "updated_at": str(data.get("updated_at") or ""),
             }
+
+    def get_all_done_repos(self) -> List[str]:
+        """Retorna lista de repositórios com status='done'."""
+        with self._lock:
+            return [
+                name for name, data in (self._state.get("repos") or {}).items()
+                if data.get("status") == "done"
+            ]
 
     def update_repo_state(
         self,
