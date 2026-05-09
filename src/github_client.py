@@ -2,6 +2,7 @@
 Cliente HTTP para a API REST v3 do GitHub:
 - uma requests.Session por thread (I/O paralelo seguro)
 - pausa global coordenada quando a API reporta rate limit
+- connection pooling para performance
 """
 from __future__ import annotations
 
@@ -12,6 +13,8 @@ import time
 from typing import Any, Dict, List, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,6 @@ class GitHubClient:
             self._headers["Authorization"] = f"token {token}"
 
         self._local = threading.local()
-        # Uma thread de cada vez entra no sleep de rate limit (evita N× sleep em rajada)
         self._rate_limit_lock = threading.Lock()
 
     def _session(self) -> requests.Session:
@@ -36,6 +38,15 @@ class GitHubClient:
         if s is None:
             s = requests.Session()
             s.headers.update(self._headers)
+            # Connection pooling - reuse connections
+            adapter = HTTPAdapter(
+                pool_connections=16,
+                pool_maxsize=16,
+                max_retries=Retry(total=0),  # handle retries ourselves
+                pool_block=False,
+            )
+            s.mount("https://", adapter)
+            s.mount("http://", adapter)
             self._local.session = s
         return s
 
@@ -45,8 +56,8 @@ class GitHubClient:
         url: str,
         *,
         params: Optional[Dict[str, Any]] = None,
-        timeout: int = 30,
-        max_retries: int = 3,
+        timeout: int = 10,  # Reduced from 30s for faster failure detection
+        max_retries: int = 2,  # Reduced - fail fast with concurrency
     ) -> requests.Response:
         for attempt in range(max_retries + 1):
             try:
