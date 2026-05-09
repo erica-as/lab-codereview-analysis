@@ -70,6 +70,7 @@ class PRCsvSink:
         self._file = None
         self._writer = None
         self._seen_keys: Set[Tuple[str, int]] = set()
+        self._lock = threading.Lock()  # Thread safety
         self._load_existing_keys()
         self._open_writer()
 
@@ -119,8 +120,9 @@ class PRCsvSink:
     def append_rows(self, prs: List[Dict[str, Any]]) -> int:
         if not self._writer or not self._file:
             return 0
-        written = 0
-        for pr in prs:
+        with self._lock:  # Thread-safe append
+            written = 0
+            for pr in prs:
             repo = str(pr.get("repository", ""))
             number = int(pr.get("number", 0) or 0)
             key = (repo, number)
@@ -158,7 +160,8 @@ class PRCsvSink:
 
     def close(self) -> None:
         if self._file:
-            self._file.close()
+            with self._lock:
+                self._file.close()
 
 
 class GitHubCrawler:
