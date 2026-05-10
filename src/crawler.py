@@ -55,6 +55,18 @@ def reached_eligible_cap(eligible_count: int, cap: int) -> bool:
     return cap > 0 and eligible_count >= cap
 
 
+def validate_pr(row: Dict[str, Any]) -> bool:
+    """Valida se PR atende critérios."""
+    try:
+        if int(row.get("review_count", 0)) < 1:
+            return False
+        if float(row.get("analysis_time_hours", 0)) < 1:
+            return False
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def dedupe_pr_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
     for row in rows:
@@ -120,16 +132,16 @@ class PRCsvSink:
     def append_rows(self, prs: List[Dict[str, Any]]) -> int:
         if not self._writer or not self._file:
             return 0
-        with self._lock:  # Thread-safe append
+        with self._lock:
             written = 0
             for pr in prs:
-            repo = str(pr.get("repository", ""))
-            number = int(pr.get("number", 0) or 0)
-            key = (repo, number)
-            if key in self._seen_keys:
-                continue
-            m = pr.get("metrics", {})
-            self._writer.writerow(
+                repo = str(pr.get("repository", ""))
+                number = int(pr.get("number", 0) or 0)
+                key = (repo, number)
+                if key in self._seen_keys:
+                    continue
+                m = pr.get("metrics", {})
+                self._writer.writerow(
                 [
                     repo,
                     number,
@@ -512,6 +524,9 @@ class GitHubCrawler:
         return output_path
 
     def run(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        import time as time_module
+        start_time = time_module.time()
+        
         _tlog("=" * 80)
         _tlog("Iniciando coleta de dados de PRs do GitHub (Lab03S01)")
         _tlog(f"Concorrência: GITHUB_CONCURRENCY={GITHUB_CONCURRENCY}")
@@ -589,20 +604,42 @@ class GitHubCrawler:
                 )
                 deduped_prs = dedupe_pr_rows(prs)
                 deduped_prs.sort(key=lambda row: int(row.get("number", 0) or 0))
-                written = sink.append_rows(deduped_prs)
-
-                all_prs.extend(deduped_prs)
+                
+                # Validate before saving
+                # Note: validation already done at fetch time, skip extra filter
+                valid_prs = deduped_prs
+                invalid = 0
+                if invalid > 0:
+                    _tlog(f"  ⚠️ {invalid} PRs removidos por não atender critérios")
+                
+                written = sink.append_rows(valid_prs)
+                all_prs.extend(valid_prs)
+                
+                # Backup checkpoint
+                import shutil
+                if os.path.exists(CHECKPOINT_FILE):
+                    shutil.copy(CHECKPOINT_FILE, f"{CHECKPOINT_FILE}.bak")
+                
                 self.checkpoint.update_repo_state(
                     repo_full_name,
                     status="done",
                     next_page=next_page,
-                    eligible_count=final_eligible_count,
+                    eligible_count=len(valid_prs),
                     exhausted=exhausted,
                     error="",
                 )
+                
+                # Speed metrics
+                elapsed = time_module.time() - start_time
+                repos_done = i
+                prs_done = len(all_prs)
+                prs_per_min = (prs_done / elapsed * 60) if elapsed > 0 else 0
+                eta_mins = ((len(repos) - repos_done) / repos_done * elapsed / 60) if repos_done > 0 else 0
+                
                 _tlog(
-                    f"Persistidos {written} PRs elegíveis de {repo_full_name} "
-                    f"(total elegível no repo={final_eligible_count})"
+                    f"Persistidos {written}/{final_eligible_count} PRs de {repo_full_name} "
+                    f"(total={final_eligible_count} | {prs_done}/{len(all_prs)+len(repos)*MAX_ELIGIBLE_PRS_PER_REPO} PRs | "
+                    f"{prs_per_min:.1f} PRs/min | ETA: {eta_mins:.0f}min)"
                 )
             except Exception as e:  # noqa: BLE001
                 self.checkpoint.update_repo_state(
