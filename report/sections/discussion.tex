@@ -1,0 +1,28 @@
+Os resultados revelam padrões importantes sobre code review em repositórios
+populares do GitHub.
+
+\textbf{Dimensão A -- Status do PR:}
+O tempo de análise é o único fator com correlação moderada ao status de merge
+(RQ02, $\rho = -0,3910$). Isso sugere que PRs que são integrados rapidamente
+têm maior chance de merge. Possíveis explicações incluem: PRs simples e bem
+preparados passam mais rápido pela revisão, ou PRs que demoram muito perdem
+relevância ou conflitam com mudanças mais recentes.
+
+As demais métricas (tamanho, descrição, participantes) apresentam correlações
+desprezíveis com o status.
+
+\textbf{Dimensão B -- Número de Revisões:}
+O tamanho do PR (RQ05, $\rho = 0,3114$) mostra correlação moderada com o
+número de revisões. PRs maiores demandam mais atenção de revisores, como
+evidenciado pelo crescimento da mediana de alterações de 14 (1 revisão)
+para 342 (10 revisões). O tempo de análise (RQ06, $\rho = 0,0917$) e
+o tamanho da descrição (RQ07, $\rho = 0,1861$) apresentam correlações
+desprezíveis e fracas, respectivamente.
+
+\textbf{Limitações:}
+Os campos de comentários não foram corretamente coletados, limitando nossa
+análise de ``interações'' ao número de participantes. Além disso, a amostra
+compreende apenas repositórios populares, o que pode não refletir projetos
+menores ou corporativos. A winsorização no percentil 99, embora necessária
+para mitigar outliers extremos, pode ter removido informações relevantes
+sobre PRs excepcionalmente grandes.

@@ -157,6 +157,22 @@ Funciona de forma muito semelhante a um Droplet: uma **VM Ubuntu** com **SSH (po
 
 O *rate limit* da API GitHub continua a ser o limite; a VM só corre o processo 24/7 sem depender do teu portátil.
 
+## Análise e Relatório (Sprint 3)
+
+Gera tabelas estatísticas, gráficos e compila o relatório final em PDF:
+
+```bash
+make report
+```
+
+Saída: `report/main.pdf` (relatório completo com 8 RQs, correlações de Spearman e visualizações).
+
+### Dependências adicionais
+
+```bash
+pip3 install -r requirements-analysis.txt
+```
+
 ## Documentação adicional (enunciado)
 
 - [docs/enunciado.md](docs/enunciado.md) — enunciado em Markdown  
@@ -177,12 +193,26 @@ Ficheiros em `data/` (não versionados por defeito; ver [`.gitignore`](.gitignor
 ```
 lab-codereview-analysis/
 ├── src/
-│   ├── crawler.py         # Orquestração, filtros, CSV, paralelismo
-│   └── github_client.py  # Sessão HTTP, paginação, *rate limit*
-├── docs/                   # Enunciado e checklists
-├── data/                   # Saída (gerada, ignorada no Git)
+│   ├── crawler.py              # Orquestração, filtros, CSV, paralelismo
+│   ├── github_client.py        # Sessão HTTP, paginação, rate limit
+│   └── analysis/               # Scripts de análise (Sprint 3)
+│       ├── data_utils.py       # Carregamento + winsorização
+│       ├── descriptive_stats.py # Estatísticas descritivas
+│       ├── correlation_analysis.py # Correlações Spearman
+│       ├── generate_figures.py # Gráficos (boxplot, hexbin, heatmap)
+│       └── generate_tables.py  # Tabelas LaTeX
+├── report/
+│   ├── main.pdf                # Relatório final (gerado)
+│   ├── main.tex                # Documento principal LaTeX
+│   ├── sections/               # Seções do relatório
+│   ├── figures/                # Gráficos gerados
+│   └── tables/                 # Tabelas geradas
+├── docs/                       # Enunciado e checklists
+├── data/                       # Saída do crawler (ignorada no Git)
 ├── requirements.txt
+├── requirements-analysis.txt
+├── Makefile                    # make report
 ├── .env.example
-├── .env                    # Não versionar
+├── .env                        # Não versionar
 └── README.md
 ```

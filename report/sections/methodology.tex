@@ -1,0 +1,53 @@
+\subsection{Seleção de Repositórios}
+
+Foram selecionados 197 repositórios populares do GitHub, extraídos da busca
+pública ordenada por estrelas. Critérios de inclusão: pelo menos 100 PRs fechados.
+
+\subsection{Seleção de Pull Requests}
+
+Foram analisados 9.075 PRs que atendem aos seguintes critérios:
+\begin{itemize}
+    \item Status MERGED ou CLOSED;
+    \item Pelo menos uma revisão oficial (campo \texttt{review\_count} $\geq$ 1);
+    \item Tempo de análise maior que 1 hora.
+\end{itemize}
+
+\subsection{Métricas}
+
+As métricas extraídas para cada PR são:
+\begin{itemize}
+    \item \textbf{Tamanho:} número de arquivos modificados e total de linhas alteradas;
+    \item \textbf{Tempo de Análise:} intervalo entre criação e fechamento/merge (horas);
+    \item \textbf{Descrição:} número de caracteres do corpo do PR;
+    \item \textbf{Interações:} número de participantes distintos;
+    \item \textbf{Revisões:} número de submissões de revisão oficiais.
+\end{itemize}
+
+\textbf{Nota:} os campos \texttt{comments\_count} e \texttt{review\_comments\_count}
+apresentaram valores zerados na coleta. Como proxy para interações,
+utilizamos o número de participantes, que foi corretamente coletado.
+
+\subsection{Testes Estatísticos}
+
+Utilizamos o coeficiente de correlação de \spearman ($\rho$), um método
+não-paramétrico robusto a outliers e distribuições não-normais.
+Aplicamos winsorização no percentil 99 para mitigar o impacto de outliers extremos.
+
+O nível de significância adotado foi $\alpha = 0.05$. A magnitude do efeito
+foi classificada conforme o valor de $|\rho|$:
+desprezível ($<$0,1), fraca (0,1--0,3), moderada (0,3--0,5), forte (0,5--0,7),
+muito forte ($>$0,7).
+
+\subsection{Visualizações}
+
+Para a representação gráfica, seguimos as recomendações de Claus O. Wilke
+(\textit{Fundamentals of Data Visualization}, O'Reilly, 2019):
+\begin{itemize}
+    \item \textbf{ECDF} (Função de Distribuição Cumulativa Empírica) para comparações
+    de distribuição entre grupos (Dimensão A), por ser livre de parâmetros arbitrários
+    (como largura de bins em histogramas) e robusta a outliers.
+    \item \textbf{Violin plots com boxplot interno} para relações entre variável contínua
+    e discreta (Dimensão B), revelando a distribuição completa sem adicionar ruído artificial.
+    \item \textbf{Matriz de correlação triangular} para visão geral das relações
+    entre todas as métricas.
+\end{itemize}

@@ -1,0 +1,8 @@
+RQ,var_x,var_y,rho,p_value,significant,effect_size
+RQ01,total_changes,merged,0.0034,0.7475,False,desprezivel
+RQ02,analysis_time_hours,merged,-0.391,0.0,True,moderada
+RQ03,description_chars,merged,-0.0288,0.0061,True,desprezivel
+RQ04,participants,merged,-0.0756,0.0,True,desprezivel
+RQ05,total_changes,review_count,0.3114,0.0,True,moderada
+RQ06,analysis_time_hours,review_count,0.0917,0.0,True,desprezivel
+RQ07,description_chars,review_count,0.1861,0.0,True,fraca
