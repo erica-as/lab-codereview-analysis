@@ -7,9 +7,5 @@ __pycache__/
 dist/
 build/
 .DS_Store
-data/
-src/data/*.log
-src/data/*.json
-src/data/*.pid
 *.log
 *.xlsx
